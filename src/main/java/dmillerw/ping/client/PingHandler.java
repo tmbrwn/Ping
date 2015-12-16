@@ -1,8 +1,15 @@
 package dmillerw.ping.client;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.lwjgl.BufferUtils;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.util.glu.GLU;
+
 import dmillerw.ping.data.PingType;
 import dmillerw.ping.data.PingWrapper;
 import dmillerw.ping.helper.PingRenderHelper;
@@ -11,26 +18,21 @@ import dmillerw.ping.proxy.ClientProxy;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.renderer.OpenGlHelper;
-import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.culling.Frustrum;
+import net.minecraft.client.renderer.WorldRenderer;
+import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
-import net.minecraft.util.IIcon;
+import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.MinecraftForge;
-import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.util.glu.GLU;
-
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 /**
  * @author dmillerw
@@ -46,15 +48,13 @@ public class PingHandler {
         MinecraftForge.EVENT_BUS.register(INSTANCE);
     }
 
-    private RenderBlocks renderBlocks;
-
     private List<PingWrapper> activePings = new ArrayList<PingWrapper>();
 
     public void onPingPacket(ServerBroadcastPing packet) {
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.thePlayer.getDistance(packet.ping.x, packet.ping.y, packet.ping.z) <= ClientProxy.pingAcceptDistance) {
             if (ClientProxy.sound) {
-                mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("ping:bloop"), 1.0F));
+                mc.getSoundHandler().playSound(PositionedSoundRecord.create(new ResourceLocation("ping:bloop"), 1.0F));
             }
             packet.ping.timer = ClientProxy.pingDuration;
             activePings.add(packet.ping);
@@ -64,12 +64,12 @@ public class PingHandler {
     @SubscribeEvent
     public void onRenderWorld(RenderWorldLastEvent event) {
         Minecraft mc = Minecraft.getMinecraft();
-        Entity renderEntity = mc.renderViewEntity;
+        Entity renderEntity = mc.getRenderViewEntity();
         double interpX = renderEntity.prevPosX + (renderEntity.posX - renderEntity.prevPosX) * event.partialTicks;
         double interpY = renderEntity.prevPosY + (renderEntity.posY - renderEntity.prevPosY) * event.partialTicks;
         double interpZ = renderEntity.prevPosZ + (renderEntity.posZ - renderEntity.prevPosZ) * event.partialTicks;
 
-        Frustrum camera = new Frustrum();
+        Frustum camera = new Frustum();
         camera.setPosition(interpX, interpY, interpZ);
 
         for (PingWrapper ping : activePings) {
@@ -142,32 +142,32 @@ public class PingHandler {
 
                 Minecraft.getMinecraft().renderEngine.bindTexture(TEXTURE);
 
-                Tessellator tessellator = Tessellator.instance;
+                WorldRenderer worldrenderer = Tessellator.getInstance().getWorldRenderer();
 
-                tessellator.setTranslation(pingX / 2, pingY / 2, 0);
+                worldrenderer.setTranslation(pingX / 2, pingY / 2, 0);
 
                 float min = -8;
                 float max =  8;
 
                 // Background
-                tessellator.startDrawingQuads();
-                tessellator.setColorOpaque_I(ping.color);
-                tessellator.addVertexWithUV(min, max, 0, PingType.BACKGROUND.minU, PingType.BACKGROUND.maxV);
-                tessellator.addVertexWithUV(max, max, 0, PingType.BACKGROUND.maxU, PingType.BACKGROUND.maxV);
-                tessellator.addVertexWithUV(max, min, 0, PingType.BACKGROUND.maxU, PingType.BACKGROUND.minV);
-                tessellator.addVertexWithUV(min, min, 0, PingType.BACKGROUND.minU, PingType.BACKGROUND.minV);
-                tessellator.draw();
+                worldrenderer.startDrawingQuads();
+                worldrenderer.setColorOpaque_I(ping.color);
+                worldrenderer.addVertexWithUV(min, max, 0, PingType.BACKGROUND.minU, PingType.BACKGROUND.maxV);
+                worldrenderer.addVertexWithUV(max, max, 0, PingType.BACKGROUND.maxU, PingType.BACKGROUND.maxV);
+                worldrenderer.addVertexWithUV(max, min, 0, PingType.BACKGROUND.maxU, PingType.BACKGROUND.minV);
+                worldrenderer.addVertexWithUV(min, min, 0, PingType.BACKGROUND.minU, PingType.BACKGROUND.minV);
+                Tessellator.getInstance().draw();
 
                 // Icon
-                tessellator.setColorOpaque_F(1, 1, 1);
-                tessellator.startDrawingQuads();
-                tessellator.addVertexWithUV(min, max, 0, ping.type.minU, ping.type.maxV);
-                tessellator.addVertexWithUV(max, max, 0, ping.type.maxU, ping.type.maxV);
-                tessellator.addVertexWithUV(max, min, 0, ping.type.maxU, ping.type.minV);
-                tessellator.addVertexWithUV(min, min, 0, ping.type.minU, ping.type.minV);
-                tessellator.draw();
+                worldrenderer.setColorOpaque_F(1, 1, 1);
+                worldrenderer.startDrawingQuads();
+                worldrenderer.addVertexWithUV(min, max, 0, ping.type.minU, ping.type.maxV);
+                worldrenderer.addVertexWithUV(max, max, 0, ping.type.maxU, ping.type.maxV);
+                worldrenderer.addVertexWithUV(max, min, 0, ping.type.maxU, ping.type.minV);
+                worldrenderer.addVertexWithUV(min, min, 0, ping.type.minU, ping.type.minV);
+                Tessellator.getInstance().draw();
 
-                tessellator.setTranslation(0, 0, 0);
+                worldrenderer.setTranslation(0, 0, 0);
 
                 GL11.glPopMatrix();
             }
@@ -205,28 +205,28 @@ public class PingHandler {
 
         Minecraft.getMinecraft().renderEngine.bindTexture(TEXTURE);
 
-        Tessellator tessellator = Tessellator.instance;
+        WorldRenderer worldrenderer = Tessellator.getInstance().getWorldRenderer();
 
         float min = -0.25F - (0.25F * (float)ping.animationTimer / 20F);
         float max =  0.25F + (0.25F * (float)ping.animationTimer / 20F);
 
         // Background
-        tessellator.startDrawingQuads();
-        tessellator.setColorOpaque_I(ping.color);
-        tessellator.addVertexWithUV(min, max, 0, PingType.BACKGROUND.minU, PingType.BACKGROUND.maxV);
-        tessellator.addVertexWithUV(max, max, 0, PingType.BACKGROUND.maxU, PingType.BACKGROUND.maxV);
-        tessellator.addVertexWithUV(max, min, 0, PingType.BACKGROUND.maxU, PingType.BACKGROUND.minV);
-        tessellator.addVertexWithUV(min, min, 0, PingType.BACKGROUND.minU, PingType.BACKGROUND.minV);
-        tessellator.draw();
+        worldrenderer.startDrawingQuads();
+        worldrenderer.setColorOpaque_I(ping.color);
+        worldrenderer.addVertexWithUV(min, max, 0, PingType.BACKGROUND.minU, PingType.BACKGROUND.maxV);
+        worldrenderer.addVertexWithUV(max, max, 0, PingType.BACKGROUND.maxU, PingType.BACKGROUND.maxV);
+        worldrenderer.addVertexWithUV(max, min, 0, PingType.BACKGROUND.maxU, PingType.BACKGROUND.minV);
+        worldrenderer.addVertexWithUV(min, min, 0, PingType.BACKGROUND.minU, PingType.BACKGROUND.minV);
+        Tessellator.getInstance().draw();
 
         // Icon
-        tessellator.setColorOpaque_F(1, 1, 1);
-        tessellator.startDrawingQuads();
-        tessellator.addVertexWithUV(min, max, 0, ping.type.minU, ping.type.maxV);
-        tessellator.addVertexWithUV(max, max, 0, ping.type.maxU, ping.type.maxV);
-        tessellator.addVertexWithUV(max, min, 0, ping.type.maxU, ping.type.minV);
-        tessellator.addVertexWithUV(min, min, 0, ping.type.minU, ping.type.minV);
-        tessellator.draw();
+        worldrenderer.setColorOpaque_F(1, 1, 1);
+        worldrenderer.startDrawingQuads();
+        worldrenderer.addVertexWithUV(min, max, 0, ping.type.minU, ping.type.maxV);
+        worldrenderer.addVertexWithUV(max, max, 0, ping.type.maxU, ping.type.maxV);
+        worldrenderer.addVertexWithUV(max, min, 0, ping.type.maxU, ping.type.minV);
+        worldrenderer.addVertexWithUV(min, min, 0, ping.type.minU, ping.type.minV);
+        Tessellator.getInstance().draw();
 
         GL11.glDepthMask(true);
         GL11.glEnable(GL11.GL_DEPTH_TEST);
@@ -237,11 +237,8 @@ public class PingHandler {
 
     public void renderPingOverlay(double x, double y, double z, PingWrapper ping) {
         Minecraft mc = Minecraft.getMinecraft();
-        if (renderBlocks == null || renderBlocks.blockAccess != mc.theWorld) {
-            renderBlocks = new RenderBlocks(mc.theWorld);
-        }
-
-        IIcon icon = Blocks.stained_glass.getIcon(0, 0);
+        
+        TextureAtlasSprite icon = mc.getRenderItem().getItemModelMesher().getParticleIcon(Item.getItemFromBlock(Blocks.stained_glass));
 
         float padding = 0F + (0.20F * (float)ping.animationTimer / (float)20);
         float box = 1 + padding + padding;
@@ -254,11 +251,11 @@ public class PingHandler {
         OpenGlHelper.glBlendFunc(770, 771, 1, 0);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
 
-        Tessellator.instance.setTranslation(x + 0.5, y + 0.5, z + 0.5);
+        Tessellator.getInstance().getWorldRenderer().setTranslation(x + 0.5, y + 0.5, z + 0.5);
 
         PingRenderHelper.drawBlockOverlay(box, box, box, icon, ping.color, 150 + alpha);
 
-        Tessellator.instance.setTranslation(0, 0, 0);
+        Tessellator.getInstance().getWorldRenderer().setTranslation(0, 0, 0);
 
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDisable(GL11.GL_BLEND);

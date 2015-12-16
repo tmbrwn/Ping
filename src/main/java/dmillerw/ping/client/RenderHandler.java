@@ -1,8 +1,8 @@
 package dmillerw.ping.client;
 
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent;
+import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.GL11;
+
 import dmillerw.ping.client.gui.GuiPingSelect;
 import dmillerw.ping.data.PingType;
 import dmillerw.ping.proxy.ClientProxy;
@@ -10,10 +10,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.common.MinecraftForge;
-import org.lwjgl.input.Mouse;
-import org.lwjgl.opengl.GL11;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 /**
  * @author dmillerw
@@ -58,7 +60,8 @@ public class RenderHandler {
         int numOfItems = PingType.values().length - 1;
 
         Minecraft mc = Minecraft.getMinecraft();
-        Tessellator tessellator = Tessellator.instance;
+        Tessellator tessellator = Tessellator.getInstance();
+        WorldRenderer worldrenderer = tessellator.getWorldRenderer();
 
         // Background
         GL11.glPushMatrix();
@@ -73,13 +76,13 @@ public class RenderHandler {
         float backgroundX = resolution.getScaledWidth() / 2 - halfWidth;
         float backgroundY = resolution.getScaledHeight() / 4 - halfHeight;
 
-        tessellator.startDrawingQuads();
-        tessellator.setColorRGBA_I(0x000000, 122);
+        worldrenderer.startDrawingQuads();
+        worldrenderer.setColorRGBA_I(0x000000, 122);
 
-        tessellator.addVertex(backgroundX, backgroundY + 15 + halfHeight * 2, 0);
-        tessellator.addVertex(backgroundX + halfWidth * 2, backgroundY + 15 + halfHeight * 2, 0);
-        tessellator.addVertex(backgroundX + halfWidth * 2, backgroundY, 0);
-        tessellator.addVertex(backgroundX, backgroundY, 0);
+        worldrenderer.addVertex(backgroundX, backgroundY + 15 + halfHeight * 2, 0);
+        worldrenderer.addVertex(backgroundX + halfWidth * 2, backgroundY + 15 + halfHeight * 2, 0);
+        worldrenderer.addVertex(backgroundX + halfWidth * 2, backgroundY, 0);
+        worldrenderer.addVertex(backgroundX, backgroundY, 0);
 
         tessellator.draw();
 
@@ -111,25 +114,25 @@ public class RenderHandler {
             float max =  ITEM_SIZE / 2;
 
             // Background
-            tessellator.startDrawingQuads();
+            worldrenderer.startDrawingQuads();
             if (mouseIn) {
-                tessellator.setColorOpaque(ClientProxy.pingR, ClientProxy.pingG, ClientProxy.pingB);
+            	worldrenderer.setColorOpaque(ClientProxy.pingR, ClientProxy.pingG, ClientProxy.pingB);
             } else {
-                tessellator.setColorOpaque_I(0xFFFFFF);
+            	worldrenderer.setColorOpaque_I(0xFFFFFF);
             }
-            tessellator.addVertexWithUV(drawX + min, drawY + max, 0, PingType.BACKGROUND.minU, PingType.BACKGROUND.maxV);
-            tessellator.addVertexWithUV(drawX + max, drawY + max, 0, PingType.BACKGROUND.maxU, PingType.BACKGROUND.maxV);
-            tessellator.addVertexWithUV(drawX + max, drawY + min, 0, PingType.BACKGROUND.maxU, PingType.BACKGROUND.minV);
-            tessellator.addVertexWithUV(drawX + min, drawY + min, 0, PingType.BACKGROUND.minU, PingType.BACKGROUND.minV);
+            worldrenderer.addVertexWithUV(drawX + min, drawY + max, 0, PingType.BACKGROUND.minU, PingType.BACKGROUND.maxV);
+            worldrenderer.addVertexWithUV(drawX + max, drawY + max, 0, PingType.BACKGROUND.maxU, PingType.BACKGROUND.maxV);
+            worldrenderer.addVertexWithUV(drawX + max, drawY + min, 0, PingType.BACKGROUND.maxU, PingType.BACKGROUND.minV);
+            worldrenderer.addVertexWithUV(drawX + min, drawY + min, 0, PingType.BACKGROUND.minU, PingType.BACKGROUND.minV);
             tessellator.draw();
 
             // Icon
-            tessellator.setColorOpaque_F(1, 1, 1);
-            tessellator.startDrawingQuads();
-            tessellator.addVertexWithUV(drawX + min, drawY + max, 0, type.minU, type.maxV);
-            tessellator.addVertexWithUV(drawX + max, drawY + max, 0, type.maxU, type.maxV);
-            tessellator.addVertexWithUV(drawX + max, drawY + min, 0, type.maxU, type.minV);
-            tessellator.addVertexWithUV(drawX + min, drawY + min, 0, type.minU, type.minV);
+            worldrenderer.setColorOpaque_F(1, 1, 1);
+            worldrenderer.startDrawingQuads();
+            worldrenderer.addVertexWithUV(drawX + min, drawY + max, 0, type.minU, type.maxV);
+            worldrenderer.addVertexWithUV(drawX + max, drawY + max, 0, type.maxU, type.maxV);
+            worldrenderer.addVertexWithUV(drawX + max, drawY + min, 0, type.maxU, type.minV);
+            worldrenderer.addVertexWithUV(drawX + min, drawY + min, 0, type.minU, type.minV);
             tessellator.draw();
         }
     }
@@ -161,10 +164,8 @@ public class RenderHandler {
 
             if (mouseIn) {
                 GL11.glPushMatrix();
-                GL11.glDisable(GL11.GL_LIGHTING);
                 GL11.glColor4f(1, 1, 1, 1);
-                mc.fontRenderer.drawString(type.toString(), resolution.getScaledWidth() / 2 - mc.fontRenderer.getStringWidth(type.toString()) / 2, (int) (backgroundY + halfHeight * 2), 0xFFFFFF);
-                GL11.glEnable(GL11.GL_LIGHTING);
+                mc.fontRendererObj.drawString(type.toString(), resolution.getScaledWidth() / 2 - mc.fontRendererObj.getStringWidth(type.toString()) / 2, (int) (backgroundY + halfHeight * 2), 0xFFFFFF);
                 GL11.glPopMatrix();
             }
         }

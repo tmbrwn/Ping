@@ -1,15 +1,16 @@
 package dmillerw.ping.client;
 
-import cpw.mods.fml.client.registry.ClientRegistry;
-import cpw.mods.fml.common.FMLCommonHandler;
-import cpw.mods.fml.common.eventhandler.SubscribeEvent;
-import cpw.mods.fml.common.gameevent.TickEvent;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
+
 import dmillerw.ping.client.gui.CompatibleScaledResolution;
 import dmillerw.ping.client.gui.GuiPingSelect;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.input.Mouse;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 /**
  * @author dmillerw
